@@ -1,4 +1,5 @@
-
+// Definimos los tipos de datos que esperamos del backend.
+// Estos no cambian.
 interface LoginResponse {
   token: string;
   user: {
@@ -15,39 +16,70 @@ interface User {
 }
 
 class AuthService {
+  // Las llaves para guardar en el almacenamiento local se mantienen.
   private readonly TOKEN_KEY = 'utec_diagram_token';
   private readonly USER_KEY = 'utec_diagram_user';
 
-  // Simular backend serverless - en producción esto sería una URL real
-  private readonly API_BASE = '/api';
+  // ACTUALIZACIÓN 1: Usamos la URL base real de tu API desplegada.
+  private readonly API_BASE = 'https://nyzvqsqlp5.execute-api.us-east-1.amazonaws.com/dev';
 
-  async login(email: string, password: string): Promise<LoginResponse> {
+  // NUEVO MÉTODO: Implementamos la llamada al endpoint de registro.
+  async register(email: string, password: string): Promise<any> {
     try {
-      // Simulación de llamada al backend
-      console.log('Intentando login con:', { email, password });
-      
-      // Simular autenticación exitosa
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockResponse: LoginResponse = {
-        token: `mock_jwt_token_${Date.now()}`,
-        user: {
-          id: '1',
-          email: email,
-          name: email.split('@')[0]
-        }
-      };
+      const response = await fetch(`${this.API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Guardar token y usuario en localStorage
-      localStorage.setItem(this.TOKEN_KEY, mockResponse.token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(mockResponse.user));
+      // Si la respuesta no es exitosa, leemos el error y lo lanzamos.
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error durante el registro.');
+      }
 
-      return mockResponse;
+      // Devolvemos la respuesta exitosa del backend.
+      return await response.json();
     } catch (error) {
-      console.error('Error en login:', error);
-      throw new Error('Credenciales inválidas');
+      console.error('Error en AuthService.register:', error);
+      throw error; // Relanzamos el error para que la UI pueda manejarlo.
     }
   }
+  
+  // ACTUALIZACIÓN 2: Reemplazamos la simulación del login con la llamada real.
+  async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Credenciales inválidas.');
+      }
+      
+      const responseData: LoginResponse = await response.json();
+
+      // Si la respuesta del backend es exitosa y contiene el token/usuario, los guardamos.
+      if (responseData.token && responseData.user) {
+        localStorage.setItem(this.TOKEN_KEY, responseData.token);
+        localStorage.setItem(this.USER_KEY, JSON.stringify(responseData.user));
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error en AuthService.login:', error);
+      throw error;
+    }
+  }
+
+  // --- No se necesitan cambios en los siguientes métodos ---
 
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
