@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagram Studio</title>
+    
+    <!-- Google Fonts - IBM Plex Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --background-dark: #1D1D1D;
+            --panel-dark:      #252526;
+            --accent-cyan:     #00AEEF;
+            --text-white:      #FFFFFF;
+            --text-grey:       #AAAAAA;
+            --input-bg:        #1e1e1e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background-color: var(--background-dark);
+            color: var(--text-white);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .panel {
+            background-color: var(--panel-dark);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-white);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-grey);
+        }
+
+        .diagram-select {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--text-grey);
+            border-radius: 8px;
+            color: var(--text-white);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+        }
+
+        .diagram-select option {
+            background-color: var(--input-bg);
+            color: var(--text-white);
+        }
+
+        .code-textarea {
+            width: 100%;
+            height: 300px;
+            padding: 16px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--text-grey);
+            border-radius: 8px;
+            color: var(--text-white);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+
+        .code-textarea::placeholder {
+            color: var(--text-grey);
+        }
+
+        .generate-button {
+            width: 100%;
+            padding: 14px 24px;
+            background-color: var(--accent-cyan);
+            color: var(--background-dark);
+            border: none;
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .generate-button:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .generate-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .viewer-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--input-bg);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .placeholder-text {
+            color: var(--text-grey);
+            font-size: 16px;
+        }
+
+        .loading-text {
+            color: var(--accent-cyan);
+            font-size: 16px;
+        }
+
+        .error-text {
+            color: #ff6b6b;
+            font-size: 16px;
+        }
+
+        .diagram-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .left-panel,
+            .right-panel {
+                min-width: unset;
+            }
+            
+            .code-textarea {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Panel Izquierdo: Editor de Código -->
+        <div class="panel left-panel">
+            <h2 class="panel-title">Editor de Código</h2>
+            
+            <div class="form-group">
+                <label class="form-label" for="diagram-type">Tipo de Diagrama:</label>
+                <select id="diagram-type" class="diagram-select">
+                    <option value="aws">Arquitectura AWS (con Diagrams)</option>
+                    <option value="er">Diagrama ER (con ERAlchemy)</option>
+                    <option value="json">Estructura JSON</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="source-code">Código Fuente:</label>
+                <textarea id="source-code" class="code-textarea" placeholder="# Ejemplo de Arquitectura AWS
+from diagrams import Diagram
+from diagrams.aws.compute import EC2
+from diagrams.aws.database import RDS
+from diagrams.aws.network import ELB
+
+with Diagram('Arquitectura Web', show=False):
+    lb = ELB('balanceador')
+    web = EC2('servidor web')
+    db = RDS('base de datos')
+    
+    lb >> web >> db"></textarea>
+            </div>
+            
+            <button id="generate-btn" class="generate-button">
+                Generar Diagrama
+            </button>
+        </div>
+        
+        <!-- Panel Derecho: Visor de Diagramas -->
+        <div class="panel right-panel">
+            <h2 class="panel-title">Visor de Diagramas</h2>
+            
+            <div id="viewer-area" class="viewer-area">
+                <p class="placeholder-text">El diagrama generado por el backend aparecerá aquí.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://api.example.com/dev/diagrams/generate';
+        
+        // Ejemplos de código para cada tipo de diagrama
+        const codeExamples = {
+            aws: `# Ejemplo de Arquitectura AWS
+from diagrams import Diagram
+from diagrams.aws.compute import EC2
+from diagrams.aws.database import RDS
+from diagrams.aws.network import ELB
+
+with Diagram('Arquitectura Web', show=False):
+    lb = ELB('balanceador')
+    web = EC2('servidor web')
+    db = RDS('base de datos')
+    
+    lb >> web >> db`,
+            
+            er: `-- Ejemplo de Diagrama ER
+[usuarios] {bgcolor: "#d0e0d0"}
+  *id {label: "int, not null"}
+  nombre {label: "varchar, not null"}
+  email {label: "varchar, unique"}
+  fecha_creacion {label: "timestamp"}
+
+[publicaciones] {bgcolor: "#ececfc"}  
+  *id {label: "int, not null"}
+  +usuario_id {label: "int, not null, FK(usuarios)"}
+  titulo {label: "varchar, not null"}
+  contenido {label: "text"}
+  
+usuarios ||--o{ publicaciones`,
+            
+            json: `{
+  "proyecto": {
+    "nombre": "Diagram Studio",
+    "version": "1.0.0",
+    "tecnologias": {
+      "frontend": ["HTML", "CSS", "JavaScript"],
+      "backend": ["Python", "AWS Lambda"],
+      "base_datos": ["DynamoDB"]
+    },
+    "arquitectura": {
+      "patron": "Serverless",
+      "componentes": [
+        {
+          "nombre": "Editor",
+          "funcion": "Entrada de código"
+        },
+        {
+          "nombre": "Generador", 
+          "funcion": "Procesamiento"
+        }
+      ]
+    }
+  }
+}`
+        };
+
+        // Referencias a elementos del DOM
+        const diagramTypeSelect = document.getElementById('diagram-type');
+        const sourceCodeTextarea = document.getElementById('source-code');
+        const generateButton = document.getElementById('generate-btn');
+        const viewerArea = document.getElementById('viewer-area');
+
+        // Actualizar placeholder cuando cambie el tipo de diagrama
+        diagramTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            sourceCodeTextarea.placeholder = codeExamples[selectedType];
+            
+            // Si el textarea está vacío, llenar con el ejemplo
+            if (!sourceCodeTextarea.value.trim()) {
+                sourceCodeTextarea.value = codeExamples[selectedType];
+            }
+        });
+
+        // Inicializar con el ejemplo de AWS
+        sourceCodeTextarea.value = codeExamples.aws;
+
+        // Función para mostrar contenido en el visor
+        function updateViewer(content) {
+            viewerArea.innerHTML = content;
+        }
+
+        // Función para generar diagrama
+        async function generateDiagram() {
+            const diagramType = diagramTypeSelect.value;
+            const sourceCode = sourceCodeTextarea.value.trim();
+
+            // Validar que hay código
+            if (!sourceCode) {
+                updateViewer('<p class="error-text">Por favor, ingresa código fuente antes de generar el diagrama.</p>');
+                return;
+            }
+
+            // Deshabilitar botón y mostrar estado de carga
+            generateButton.disabled = true;
+            generateButton.textContent = 'Generando...';
+            updateViewer('<p class="loading-text">Generando diagrama...</p>');
+
+            try {
+                // Preparar el cuerpo de la petición según el tipo
+                let requestBody;
+                
+                switch(diagramType) {
+                    case 'aws':
+                    case 'er':
+                        requestBody = {
+                            diagram_type: diagramType,
+                            source_code: sourceCode
+                        };
+                        break;
+                    case 'json':
+                        try {
+                            // Para JSON, validar que sea JSON válido
+                            JSON.parse(sourceCode);
+                            requestBody = {
+                                diagram_type: diagramType,
+                                json_data: sourceCode
+                            };
+                        } catch (e) {
+                            throw new Error('El código JSON no es válido. Por favor, verifica la sintaxis.');
+                        }
+                        break;
+                    default:
+                        throw new Error('Tipo de diagrama no soportado');
+                }
+
+                // Realizar petición POST
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Validar respuesta
+                if (!data.imageUrl) {
+                    throw new Error('La respuesta del servidor no contiene una URL de imagen válida.');
+                }
+
+                // Mostrar imagen
+                updateViewer(`<img src="${data.imageUrl}" alt="Diagrama generado" class="diagram-image" />`);
+
+            } catch (error) {
+                console.error('Error al generar diagrama:', error);
+                updateViewer(`<p class="error-text">Error: ${error.message}</p>`);
+            } finally {
+                // Rehabilitar botón
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generar Diagrama';
+            }
+        }
+
+        // Event listener para el botón
+        generateButton.addEventListener('click', generateDiagram);
+
+        // Permitir generar con Enter en el textarea (Ctrl+Enter)
+        sourceCodeTextarea.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateDiagram();
+            }
+        });
+    </script>
+</body>
+</html>
