@@ -1,5 +1,4 @@
-// Definimos los tipos de datos que esperamos del backend.
-// Estos no cambian.
+// Interfaces para tipar los datos que esperamos del backend.
 interface LoginResponse {
   token: string;
   user: {
@@ -16,46 +15,46 @@ interface User {
 }
 
 class AuthService {
-  // Las llaves para guardar en el almacenamiento local se mantienen.
+  // Las llaves para el almacenamiento local no cambian.
   private readonly TOKEN_KEY = 'utec_diagram_token';
   private readonly USER_KEY = 'utec_diagram_user';
 
-  // ACTUALIZACIÓN 1: Usamos la URL base real de tu API desplegada.
+  // --- ACTUALIZACIÓN #1: URL base de tu API desplegada ---
+  // Centralizamos la URL de la API aquí.
   private readonly API_BASE = 'https://nyzvqsqlp5.execute-api.us-east-1.amazonaws.com/dev';
 
-  // NUEVO MÉTODO: Implementamos la llamada al endpoint de registro.
+  /**
+   * NUEVO MÉTODO: Implementa la llamada al endpoint de registro.
+   */
   async register(email: string, password: string): Promise<any> {
     try {
+      // Usamos el primer link: /auth/register
       const response = await fetch(`${this.API_BASE}/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      // Si la respuesta no es exitosa, leemos el error y lo lanzamos.
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Error durante el registro.');
       }
-
-      // Devolvemos la respuesta exitosa del backend.
       return await response.json();
     } catch (error) {
       console.error('Error en AuthService.register:', error);
-      throw error; // Relanzamos el error para que la UI pueda manejarlo.
+      throw error;
     }
   }
   
-  // ACTUALIZACIÓN 2: Reemplazamos la simulación del login con la llamada real.
+  /**
+   * MÉTODO ACTUALIZADO: Implementa la llamada al endpoint de login.
+   */
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
+      // Usamos el segundo link: /auth/login
       const response = await fetch(`${this.API_BASE}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
@@ -66,7 +65,7 @@ class AuthService {
       
       const responseData: LoginResponse = await response.json();
 
-      // Si la respuesta del backend es exitosa y contiene el token/usuario, los guardamos.
+      // Guardamos el token y los datos del usuario en el almacenamiento local.
       if (responseData.token && responseData.user) {
         localStorage.setItem(this.TOKEN_KEY, responseData.token);
         localStorage.setItem(this.USER_KEY, JSON.stringify(responseData.user));
@@ -79,7 +78,8 @@ class AuthService {
     }
   }
 
-  // --- No se necesitan cambios en los siguientes métodos ---
+  // --- El resto de los métodos no necesitan cambios ---
+  // Su lógica de interactuar con el almacenamiento local es correcta.
 
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
